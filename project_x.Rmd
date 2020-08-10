@@ -1,0 +1,19 @@
+---
+title: "Adrian's"
+output: html_notebook
+---
+
+Initializing Packages
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(highcharter)
+```
+
+Dataset 
+```{r}
+
+```
+
