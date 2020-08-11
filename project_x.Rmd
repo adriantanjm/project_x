@@ -12,17 +12,16 @@ library(readr)
 library(broom)
 library(highcharter)
 library(readxl)
-library(stringi)
-
+library(lubridate)
 ```
 
 Dataset 
 ```{r}
 box_office <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 1)
-
+twitter <- read.csv("data/Recruitment x Box Office x Q1 2019 - Twitter.csv", sep="\t", header=TRUE, fill = TRUE)
 ```
 
-Tidying
+Data Cleaning
 ```{r}
 box_office$Title <- as.factor(box_office$Title) #classifying titles into factors
 box_office$Studio <- as.factor(box_office$Studio) #classifying studios into factors
@@ -32,5 +31,8 @@ box_office$`This Week's Rank` <- str_remove_all(box_office$`This Week's Rank`, "
 box_office$`Last Week's Rank` <- str_remove_all(box_office$`Last Week's Rank`, "[N-]")
 box_office$`Last Week's Rank` <- sub(".0+$", "", as.character(box_office$`Last Week's Rank`))
 box_office$`Weeks Into Release` <- sub(".0+$", "", as.character(box_office$`Weeks Into Release`))
+twitter$post_date_time <- gsub("T.*", "", twitter$post_date_time) #remove details on time
+twitter$post_date_time <- ymd(twitter$post_date_time)
+class(twitter$post_date_time)
 ```
 
