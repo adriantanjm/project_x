@@ -8,12 +8,29 @@ Initializing Packages
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
+library(readr)
 library(broom)
 library(highcharter)
+library(readxl)
+library(stringi)
+
 ```
 
 Dataset 
 ```{r}
+box_office <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 1)
 
+```
+
+Tidying
+```{r}
+box_office$Title <- as.factor(box_office$Title) #classifying titles into factors
+box_office$Studio <- as.factor(box_office$Studio) #classifying studios into factors
+box_office$Year <- as.factor(box_office$Year) #classifying years into factors
+box_office$`Weekend Gross` <- str_remove_all(box_office$`Weekend Gross`, "[AU$,]") # Removing obstructive strings
+box_office$`This Week's Rank` <- str_remove_all(box_office$`This Week's Rank`, "N-")
+box_office$`Last Week's Rank` <- str_remove_all(box_office$`Last Week's Rank`, "[N-]")
+box_office$`Last Week's Rank` <- sub(".0+$", "", as.character(box_office$`Last Week's Rank`))
+box_office$`Weeks Into Release` <- sub(".0+$", "", as.character(box_office$`Weeks Into Release`))
 ```
 
