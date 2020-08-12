@@ -1,6 +1,7 @@
 ---
 title: "Adrian's"
-output: html_notebook
+output:
+  html_notebook: default
 ---
 
 Initializing Packages
@@ -13,11 +14,14 @@ library(broom)
 library(highcharter)
 library(readxl)
 library(lubridate)
+library(magrittr)
 ```
 
 Dataset 
 ```{r}
+options(scipen = 999)
 box_office <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 1)
+title_performance <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 2)
 twitter <- read.csv("data/Recruitment x Box Office x Q1 2019 - Twitter.csv", sep="\t", header=TRUE, fill = TRUE)
 ```
 
@@ -26,13 +30,61 @@ Data Cleaning
 box_office$Title <- as.factor(box_office$Title) #classifying titles into factors
 box_office$Studio <- as.factor(box_office$Studio) #classifying studios into factors
 box_office$Year <- as.factor(box_office$Year) #classifying years into factors
-box_office$`Weekend Gross` <- str_remove_all(box_office$`Weekend Gross`, "[AU$,]") # Removing obstructive strings
-box_office$`This Week's Rank` <- str_remove_all(box_office$`This Week's Rank`, "N-")
-box_office$`Last Week's Rank` <- str_remove_all(box_office$`Last Week's Rank`, "[N-]")
-box_office$`Last Week's Rank` <- sub(".0+$", "", as.character(box_office$`Last Week's Rank`))
-box_office$`Weeks Into Release` <- sub(".0+$", "", as.character(box_office$`Weeks Into Release`))
+box_office$`Weekend Gross` <- str_remove_all(box_office$`Weekend Gross`, "[AU$,]") #removing obstructive strings
+box_office$`Weekend Gross` <- as.numeric(box_office$`Weekend Gross`) #transforming column into numeric
+box_office$`This Week's Rank` <- str_remove_all(box_office$`This Week's Rank`, "N-") #removing obstructive strings
+box_office$`Last Week's Rank` <- str_remove_all(box_office$`Last Week's Rank`, "[N-]") #removing obstructive strings
+box_office$`Last Week's Rank` <- sub(".0+$", "", as.character(box_office$`Last Week's Rank`)) #removing obstructive strings
+box_office$`Weeks Into Release` <- sub(".0+$", "", as.character(box_office$`Weeks Into Release`)) #removing obstructive strings
+levels(box_office$Title) <- gsub("Dr. Seuss' The Grinch (2018)", "The Grinch", levels(box_office$Title)) #making titles consistent
+
+title_performance$Title <- as.factor(title_performance$Title) #transforming title into factor
+title_performance$Date <- gsub("(.*)–.*","\\1",title_performance$Date) #removing obstructive strings
+title_performance$Date <- str_remove_all(title_performance$Date, "[.-]") #removing obstructive strings
+title_performance$`Weekend Gross` <- str_remove_all(title_performance$`Weekend Gross`, "[.0]") #removing obstructive strings
+title_performance$`Weekend Gross` <- as.numeric(title_performance$`Weekend Gross`)
+title_performance$`Week # of release` <- as.numeric(title_performance$`Week # of release`) #transforming column into numeric
+title_performance$`Gross-to-Date` <- as.numeric(title_performance$`Gross-to-Date`)
+title_performance$new_date <- paste(title_performance$Year, title_performance$Date, sep="-") %>% ymd() %>% as.Date() #making it into date
+title_performance$Week <- format(title_performance$new_date , "%V") #Week of the year
+levels(title_performance$Title) <- gsub("Avengers: Infinty War", "Avengers Infinity War", levels(title_performance$Title)) #title consistency
+
 twitter$post_date_time <- gsub("T.*", "", twitter$post_date_time) #remove details on time
 twitter$post_date_time <- ymd(twitter$post_date_time)
-class(twitter$post_date_time)
+twitter$title <- as.factor(twitter$title)
+twitter$Year <- format(twitter$post_date_time , "%G") #creating a year column
+twitter$Week <- format(twitter$post_date_time , "%V") #creating a week of the year column
+levels(twitter$title) <- gsub("beauty and the beast", "Beauty and the Beast", levels(twitter$title)) #title consistency
+twitter$ID <- as.numeric(twitter$ID) #making column into numeric
 ```
 
+Creating a New Dataframe to understand twitter statistics + merging box office sales, weeks, etc. 
+```{r}
+twitter_stats <- twitter %>%
+  select(Title = title, ID, Year, Week) #Creating a new dataframe to work with Twitter Data
+twitter_stats <- twitter_stats %>%
+  group_by(Title) %>%
+  mutate(cumulative_tweet_count = sum(ID))
+twitter_stats <- twitter_stats %>%
+  group_by(Title, Week) %>%
+  mutate(weekly_tweet_count = sum(ID)) #weekly tweet count for film
+twitter_stats <- unique(twitter_stats) #summarizing to show weekly features by selecting unique traits in dataset (which are the weekly differences)
+
+twitter_stats_combined <- merge(twitter_stats, box_office, by.x=c("Title", "Week"), by.y=c("Title", "Week")) #combining twitter statistics with box office performance
+twitter_stats_combined <- twitter_stats_combined %>% 
+  select(!Year.y) %>%
+  select(!ID) %>%
+  rename(Year = Year.x) #removing unnecessary columns and renaming columns
+```
+
+Looking for Trends: Visualising relationship between Weekend Gross and Number of Tweets
+```{r}
+twitter_stats_combined %>% 
+  ggplot() +
+  aes(y=`Weekend Gross`, x=weekly_tweet_count) +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
+  geom_point() +
+  labs(x="Weekly Tweet Counts", title = "Correlation between Weekend Gross and Weekly Tweet Counts") 
+```
+
+The visualisation suggests that there seem to be a positive linear correlation between film performance (represented by "Weekend Gross") and social buzz (represented by "Weekly Tweet Counts"). However, the error in estimate seems large as we can see that there is visible gap between data points and regression line. Moreover, there is a cluster that the line does not seem to interact with. 
