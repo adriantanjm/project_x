@@ -23,6 +23,7 @@ options(scipen = 999)
 box_office <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 1)
 title_performance <- read_excel("data/Recruitment x Box Office x Q1 2019.xlsx", sheet = 2)
 twitter <- read.csv("data/Recruitment x Box Office x Q1 2019 - Twitter.csv", sep="\t", header=TRUE, fill = TRUE)
+film_genre <- read.csv("data/genre_title.csv")
 ```
 
 Data Cleaning
@@ -54,14 +55,17 @@ twitter$post_date_time <- ymd(twitter$post_date_time)
 twitter$title <- as.factor(twitter$title)
 twitter$Year <- format(twitter$post_date_time , "%G") #creating a year column
 twitter$Week <- format(twitter$post_date_time , "%V") #creating a week of the year column
+twitter$Month <- format(twitter$post_date_time , "%B") #creating a month column
 levels(twitter$title) <- gsub("beauty and the beast", "Beauty and the Beast", levels(twitter$title)) #title consistency
 twitter$ID <- as.numeric(twitter$ID) #making column into numeric
 ```
 
+
+
 Creating a New Dataframe to understand twitter statistics + merging box office sales, weeks, etc. 
 ```{r}
 twitter_stats <- twitter %>%
-  select(Title = title, ID, Year, Week) #Creating a new dataframe to work with Twitter Data
+  select(Title = title, ID, Year, Week, Month) #Creating a new dataframe to work with Twitter Data
 twitter_stats <- twitter_stats %>%
   group_by(Title) %>%
   mutate(cumulative_tweet_count = sum(ID))
@@ -75,9 +79,12 @@ twitter_stats_combined <- twitter_stats_combined %>%
   select(!Year.y) %>%
   select(!ID) %>%
   rename(Year = Year.x) #removing unnecessary columns and renaming columns
+
+twitter_stats_combined <- merge(twitter_stats_combined, film_genre, by.x=c("Title"), by.y=c("Title")) #adding genre into dataset 
 ```
 
-Looking for Trends: Visualising relationship between Weekend Gross and Number of Tweets
+# 1 Looking for Trends 
+## 1.1 - Visualising relationship between Weekend Gross and Number of Tweets
 ```{r}
 twitter_stats_combined %>% 
   ggplot() +
@@ -87,4 +94,6 @@ twitter_stats_combined %>%
   labs(x="Weekly Tweet Counts", title = "Correlation between Weekend Gross and Weekly Tweet Counts") 
 ```
 
-The visualisation suggests that there seem to be a positive linear correlation between film performance (represented by "Weekend Gross") and social buzz (represented by "Weekly Tweet Counts"). However, the error in estimate seems large as we can see that there is visible gap between data points and regression line. Moreover, there is a cluster that the line does not seem to interact with. 
+The visualisation suggests that there seem to be a positive linear correlation between film performance (represented by "Weekend Gross") and social buzz (represented by "Weekly Tweet Counts"). However, the error in estimate seems large as we can see that there is visible gap between data points and regression line. Moreover, there is a cluster that the regression line does not seem to interact with
+
+## 1.2 - Visualising relationship between Weekend Gross and 
