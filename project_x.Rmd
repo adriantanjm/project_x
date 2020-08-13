@@ -37,7 +37,18 @@ box_office$`This Week's Rank` <- str_remove_all(box_office$`This Week's Rank`, "
 box_office$`Last Week's Rank` <- str_remove_all(box_office$`Last Week's Rank`, "[N-]") #removing obstructive strings
 box_office$`Last Week's Rank` <- sub(".0+$", "", as.character(box_office$`Last Week's Rank`)) #removing obstructive strings
 box_office$`Weeks Into Release` <- sub(".0+$", "", as.character(box_office$`Weeks Into Release`)) #removing obstructive strings
-levels(box_office$Title) <- gsub("Dr. Seuss' The Grinch (2018)", "The Grinch", levels(box_office$Title)) #making titles consistent
+levels(box_office$Title) <- gsub("Dr. Seuss' The Grinch (2018)", "The Grinch", levels(box_office$Title)) #making titles consistency
+levels(box_office$Title) <- gsub("Avengers: Infinity War", "Avengers Infinity War", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Beauty and the Beast (2017)", "Beauty and the Beast", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Jurassic World: Fallen Kingdom", "Jurassic World", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Jurassic World: Fallen Kingdom", "Jurassic World", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Occupation (2018)", "Occupation", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Night School (2018)", "Night School", levels(box_office$Title))
+levels(box_office$Title) <- gsub("The Predator (2018)", "Predator", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Sweet Country (2017)", "Sweet Country", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Sweet Country (2017)", "Sweet Country", levels(box_office$Title))
+levels(box_office$Title) <- gsub("Dr. Seuss' The Grinch (2018)", "The Grinch", levels(box_office$Title))
+
 
 title_performance$Title <- as.factor(title_performance$Title) #transforming title into factor
 title_performance$Date <- gsub("(.*)–.*","\\1",title_performance$Date) #removing obstructive strings
@@ -49,6 +60,7 @@ title_performance$`Gross-to-Date` <- as.numeric(title_performance$`Gross-to-Date
 title_performance$new_date <- paste(title_performance$Year, title_performance$Date, sep="-") %>% ymd() %>% as.Date() #making it into date
 title_performance$Week <- format(title_performance$new_date , "%V") #Week of the year
 levels(title_performance$Title) <- gsub("Avengers: Infinty War", "Avengers Infinity War", levels(title_performance$Title)) #title consistency
+levels(title_performance$Title) <- gsub("The Predator", "Predator", levels(title_performance$Title))
 
 twitter$post_date_time <- gsub("T.*", "", twitter$post_date_time) #remove details on time
 twitter$post_date_time <- ymd(twitter$post_date_time)
@@ -58,9 +70,8 @@ twitter$Week <- format(twitter$post_date_time , "%V") #creating a week of the ye
 twitter$Month <- format(twitter$post_date_time , "%B") #creating a month column
 levels(twitter$title) <- gsub("beauty and the beast", "Beauty and the Beast", levels(twitter$title)) #title consistency
 twitter$ID <- as.numeric(twitter$ID) #making column into numeric
+levels(twitter$title)
 ```
-
-
 
 Creating a New Dataframe to understand twitter statistics + merging box office sales, weeks, etc. 
 ```{r}
@@ -74,26 +85,76 @@ twitter_stats <- twitter_stats %>%
   mutate(weekly_tweet_count = sum(ID)) #weekly tweet count for film
 twitter_stats <- unique(twitter_stats) #summarizing to show weekly features by selecting unique traits in dataset (which are the weekly differences)
 
-twitter_stats_combined <- merge(twitter_stats, box_office, by.x=c("Title", "Week"), by.y=c("Title", "Week")) #combining twitter statistics with box office performance
+twitter_stats_combined <- merge(twitter_stats, box_office, by.x=c("Title"), by.y=c("Title")) #combining twitter statistics with box office performance
 twitter_stats_combined <- twitter_stats_combined %>% 
-  select(!Year.y) %>%
-  select(!ID) %>%
-  rename(Year = Year.x) #removing unnecessary columns and renaming columns
+  group_by(Title) %>%
+  mutate(cumulative_income = sum(`Weekend Gross`)) #including cumulative sum of box office performance
 
-twitter_stats_combined <- merge(twitter_stats_combined, film_genre, by.x=c("Title"), by.y=c("Title")) #adding genre into dataset 
+twitter_stats_combined <- merge(twitter_stats_combined, title_performance, by.x=c("Title"), by.y=c("Title"))
+
+twitter_stats_combined <- twitter_stats_combined %>%
+  select(Title, cumulative_tweet_count, cumulative_income) %>%
+  distinct()
+
+
+
+
+##
+twitter_stats_combined <- twitter_stats_combined %>%
+  select(Title, cumulative_tweet_count, cumulative_income) %>%
+  distinct()
+
+levels(twitter$title)
+
+twitter_stats_combined$Title
 ```
 
 # 1 Looking for Trends 
-## 1.1 - Visualising relationship between Weekend Gross and Number of Tweets
+## 1.1 - Visualising relationship between Number of Tweets and Film Performance
 ```{r}
 twitter_stats_combined %>% 
   ggplot() +
-  aes(y=`Weekend Gross`, x=weekly_tweet_count) +
+  aes(y=cumulative_tweet_count, x=cumulative_income) +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
   geom_point() +
-  labs(x="Weekly Tweet Counts", title = "Correlation between Weekend Gross and Weekly Tweet Counts") 
+  labs(x="Cumulative Tweet Counts", y="Cumulative Income", title = "Correlation between Cumulative Tweet Count and Cumulative Income by films")
 ```
 
-The visualisation suggests that there seem to be a positive linear correlation between film performance (represented by "Weekend Gross") and social buzz (represented by "Weekly Tweet Counts"). However, the error in estimate seems large as we can see that there is visible gap between data points and regression line. Moreover, there is a cluster that the regression line does not seem to interact with
 
-## 1.2 - Visualising relationship between Weekend Gross and 
+## Regression Analysis of Cumulative Tweet Counts and Cumulative Income 
+```{r}
+cor(twitter_stats_combined$cumulative_tweet_count, twitter_stats_combined$cumulative_income) 
+linearMod1 <- lm(cumulative_income ~ cumulative_tweet_count, data=twitter_stats_combined)
+print(linearMod1)
+summary(linearMod1) 
+```
+
+
+```{r}
+twitter_stats_combined <- merge(twitter_stats_combined, film_genre, by.x=c("Title"), by.y=c("Title")) #adding genre into dataset
+
+```
+
+## 1.2 - Visualising relationship between Weekend Gross and Genre
+```{r}
+
+str(twitter_stats_combined)
+
+twitter_stats_combined$Genre <- as.factor(twitter_stats_combined$Genre)
+twitter_stats_combined %>%
+  ggplot()
+```
+
+
+## 1.3 - Visualising relationship between Weekend Gross and Month
+```{r}
+twitter_stats_combined$Month <- factor(twitter_stats_combined$Month, levels = month.name) #sorting months into factor and arrange by chronological order
+
+
+twitter_stats_combined %>%
+  ggplot() +
+  aes(y=`Weekend Gross`, x=Month) +
+  geom_point()
+```
+
+
