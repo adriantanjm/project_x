@@ -84,7 +84,7 @@ twitter_stats <- twitter %>%
   select(Title = title, ID, Year, Week, Month) #Creating a new dataframe to work with Twitter Data
 twitter_stats <- twitter_stats %>%
   group_by(Title) %>%
-  mutate(cumulative_tweet_count = sum(ID))
+  mutate(cumulative_tweet_count = sum(ID)) 
 twitter_stats <- twitter_stats %>%
   group_by(Title, Week) %>%
   mutate(weekly_tweet_count = sum(ID)) #weekly tweet count for film
@@ -109,7 +109,7 @@ twitter_stats_combined <- twitter_stats_combined %>%
   rename(Last_week_rank = `Last Week's Rank`) %>%
   rename(Weekend_Gross = `Weekend Gross`) %>%
   select(!Year.y) %>%
-  select(!Week.y)
+  select(!Week.y) #Trimming data to show only necessary parts
 ```
 
 ## Visualising relationship between Number of Tweets and Film Performance
@@ -120,7 +120,9 @@ Macro <- twitter_stats_combined %>%
   aes(x=cumulative_tweet_count, y=cumulative_income) +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
   geom_point() +
-  labs(x="Cumulative Tweet Count", y="Cumulative Income", title = "Correlation between Cumulative Tweet Count and Cumulative Income by films") 
+  labs(x="Cumulative Tweet Count", y="Cumulative Income", title = "Correlation between Cumulative Tweet Count and Cumulative Income by films")
+
+Macro # showing the plot
 
 cor(twitter_stats_combined$cumulative_tweet_count, twitter_stats_combined$cumulative_income) #calculating correlation coefficient 
 ```
@@ -143,9 +145,6 @@ cor(twitter_stats_combined$weekly_tweet_count, twitter_stats_combined$Weekend_Gr
 Macro + facet_wrap(~Studio, ncol=3) + labs (subtitle = "Facet according to Studio") + theme(
   axis.text.x = element_text(angle = 45, hjust = 1)
   )
-
-
-
 ```
 
 
@@ -179,14 +178,14 @@ twitter_stats_combined <- merge(twitter_stats_combined, film_franchise, by.x=c("
 
 twitter_stats_combined$Franchise <- as.factor(twitter_stats_combined$Franchise)
 
-Macro <- twitter_stats_combined %>% 
+Macro1 <- twitter_stats_combined %>% 
   ggplot() +
   aes(x=cumulative_tweet_count, y=cumulative_income) +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
   geom_point() +
   labs(x="Cumulative Tweet Count", y="Cumulative Income", title = "Correlation between Cumulative Tweet Count and Cumulative Income by films") 
 
-Macro + facet_wrap(~Franchise, ncol=2) + labs (subtitle = "Facet according to Franchise") + theme(
+Macro1 + facet_wrap(~Franchise, ncol=2) + labs (subtitle = "Facet according to Franchise") + theme(
   axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
